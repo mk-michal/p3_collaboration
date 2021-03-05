@@ -1,0 +1,6 @@
+unityagents==0.4.0
+git+https://github.com/openai/baselines/@98257ef8c9bd23a24a330731ae54ed086d9ce4a7
+# git+https://github.com/openai/baselines@8e56ddeac296deab3cc0adc79c84a5abb59d7a3a
+gym==0.9.4
+tensorboard
+tensorboardX
