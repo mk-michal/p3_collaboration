@@ -77,7 +77,7 @@ class MADDPGUnity(MADDPG):
 
         action = torch.reshape(actions_for_env, shape=(-1, 4))
 
-        critic_input = torch.cat((states.t(), action), dim=1).to(device)
+        critic_input = torch.cat((states[:, agent_number, :].float(), action), dim=1).to(device)
         q = agent.critic(critic_input)
 
         huber_loss = torch.nn.SmoothL1Loss()
@@ -92,7 +92,7 @@ class MADDPGUnity(MADDPG):
         # make input to agent
         # detach the other agents to save computation
         # saves some time for computing derivative
-        state = states.permute(1,0,2)
+        states = states.permute(1,0,2)
         q_input = [self.maddpg_agent[i].actor(ob.float()) if i == agent_number \
                        else self.maddpg_agent[i].actor(ob.float()).detach()
                    for i, ob in enumerate(states)]
@@ -110,8 +110,8 @@ class MADDPGUnity(MADDPG):
 
         al = actor_loss.cpu().detach().item()
         cl = critic_loss.cpu().detach().item()
-
-        self.logger.warning(f'Iteration: {self.iter}. agent_{agent_number}/losses, critic loss: {cl},actor_loss {al}')
+        if self.iter %100 == 0:
+            self.logger.info(f'Iteration: {self.iter}. agent_{agent_number}/losses, critic loss: {cl},actor_loss {al}')
 
 
 def transpose_samples(samples):
@@ -119,7 +119,7 @@ def transpose_samples(samples):
 
 def main():
     env = UnityEnvironment(file_name="Tennis_Linux/Tennis.x86_64", worker_id=1, seed=1)
-    n_episodes = 1000
+    n_episodes = 100000
 
     brain_name = env.brain_names[0]
     brain = env.brains[brain_name]
@@ -170,14 +170,19 @@ def main():
             if np.any(dones):  # exit loop if episode finished
                 break
 
-
+        agent0_reward.append(reward_this_episode[0])
+        agent1_reward.append(reward_this_episode[1])
         if len(buffer) > batchsize:
             for i in range(2):
                 samples = buffer.sample(batchsize)
                 maddpg.update(samples, i, logger)
+            maddpg.update_targets()  # soft update the target network towards the actual networks
+        if episode %100 == 0 or episode == n_episodes -1:
+            logger.info(f'Average 0 reward of agent0 is {np.mean(agent0_reward)}')
+            logger.info(f'Average 1 reward of agent1 is {np.mean(agent1_reward)}')
 
-        agent0_reward.append(reward_this_episode[0])
-        agent1_reward.append(reward_this_episode[1])
+            agent0_reward = []
+            agent1_reward = []
 
 
 if __name__ == '__main__':
