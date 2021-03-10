@@ -38,7 +38,7 @@ def main():
     parallel_envs = 4
     # number of training episodes.
     # change this to higher number to experiment. say 30000.
-    number_of_episodes = 1000
+    number_of_episodes = 10000
     episode_length = 80
     batchsize = 1000
     # how many episodes to save policy and gif
@@ -80,7 +80,7 @@ def main():
     timer = pb.ProgressBar(widgets=widget, maxval=number_of_episodes).start()
 
     # use keep_awake to keep workspace from disconnecting
-    for episode in keep_awake(range(0, number_of_episodes, parallel_envs)):
+    for episode in range(0, number_of_episodes):
 
         timer.update(episode)
 
@@ -104,7 +104,6 @@ def main():
         for episode_t in range(episode_length):
 
             t += parallel_envs
-            
 
             # explore = only explore for a certain number of episodes
             # action input needs to be transposed
