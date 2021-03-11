@@ -107,7 +107,7 @@ class MADDPG:
 
     def update_targets(self):
         """soft update targets"""
-        self.iter += 1
+        # self.iter += 1
         for ddpg_agent in self.maddpg_agent:
             soft_update(ddpg_agent.target_actor, ddpg_agent.actor, self.tau)
             soft_update(ddpg_agent.target_critic, ddpg_agent.critic, self.tau)

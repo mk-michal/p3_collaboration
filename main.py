@@ -10,6 +10,7 @@ from maddpg_tennis import MADDPGUnity
 from unityagents import UnityEnvironment
 import numpy as np
 from config import Config
+from config import save_config
 
 def main():
     env = UnityEnvironment(file_name="Tennis_Linux/Tennis.x86_64", worker_id=1, seed=1)
@@ -17,12 +18,12 @@ def main():
     file_path = os.path.join('data', env_date)
 
     os.makedirs(file_path,  exist_ok=True)
+    save_config(file_path)
 
     brain_name = env.brain_names[0]
-    brain = env.brains[brain_name]
 
     buffer = ReplayBuffer(Config.buffer_size)
-    maddpg = MADDPGUnity()
+    maddpg = MADDPGUnity(cfg=Config, tau=Config.tau, discount_factor=Config.discount_factor)
 
     agent1_reward, agent0_reward, all_rewards_mean = [], [], []
     batchsize = Config.batchsize
@@ -39,8 +40,9 @@ def main():
         env_info = env.reset(train_mode=True)[brain_name]
         states = env_info.vector_observations  # get the current state (for each agent)
         scores = np.zeros(2)  # initialize the score (for each agent)
+        n_of_steps = 0
         while True:
-
+            n_of_steps += 1
             noise *= noise_reduction
 
             states_tensor = list(map(torch.tensor, states))
@@ -73,18 +75,19 @@ def main():
 
         agent0_reward.append(reward_this_episode[0])
         agent1_reward.append(reward_this_episode[1])
-        if len(buffer) > batchsize:
+        if len(buffer) > Config.warmup:
             for i in range(2):
                 samples = buffer.sample(batchsize)
                 maddpg.update(samples, i, logger)
             if episode % Config.update_episode_n == 0:
                 maddpg.update_targets()  # soft update the target network towards the actual networks
+            maddpg.iter += 1
 
-
-        if (episode + 1) % 100 == 0 or episode == n_episodes -1:
+        if (episode + 1) % 100 == 0 or episode == Config.n_episodes -1:
             logger.info(f'Average 0 reward of agent0 is {np.mean(agent0_reward)}')
             logger.info(f'Average 1 reward of agent1 is {np.mean(agent1_reward)}')
             if max(np.mean(agent0_reward), np.mean(agent1_reward)) > max_reward:
+                max_reward = max(np.mean(agent0_reward), np.mean(agent1_reward))
                 logger.info('Found best model. Saving model into file: ...')
 
                 save_dict_list = []
@@ -102,8 +105,6 @@ def main():
             agent1_reward = []
             plt.plot(all_rewards_mean)
             plt.savefig(os.path.join(file_path, 'result_plot.png'))
-
-
 
 
 if __name__ == '__main__':

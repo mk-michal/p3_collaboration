@@ -2,17 +2,39 @@ import logging
 
 import torch
 
+from config import Config
 from ddpg import DDPGAgent
 from maddpg import MADDPG
 
 
 class MADDPGUnity(MADDPG):
-    def __init__(self):
-        super(MADDPGUnity, self).__init__(tau=0.06)
+    def __init__(self, cfg: Config, discount_factor=0.95, tau=0.02):
+        super(MADDPGUnity, self).__init__(tau=tau, discount_factor=discount_factor)
         self.logger = logging.getLogger(__name__)
         self.maddpg_agent = [
-            DDPGAgent(24, 16, 8, 2, 52, 36, 16),
-            DDPGAgent(24, 16, 8, 2, 52, 36, 16)]
+            DDPGAgent(
+                in_actor=24,
+                hidden_in_actor=cfg.actor_hidden[0],
+                hidden_out_actor=cfg.actor_hidden[1],
+                out_actor=2,
+                in_critic=52,
+                hidden_in_critic=cfg.critic_hidden[0],
+                hidden_out_critic=cfg.critic_hidden[1],
+                lr_actor=cfg.actor_lr,
+                lr_critic=cfg.critic_lr
+            ),
+            DDPGAgent(
+                in_actor=24,
+                hidden_in_actor=cfg.actor_hidden[0],
+                hidden_out_actor=cfg.actor_hidden[1],
+                out_actor=2,
+                in_critic=52,
+                hidden_in_critic=cfg.critic_hidden[0],
+                hidden_out_critic=cfg.critic_hidden[1],
+                lr_actor=cfg.actor_lr,
+                lr_critic=cfg.critic_lr
+            )
+        ]
 
 
     def update(self, samples, agent_number, logger,device: str = 'cpu'):
@@ -37,8 +59,9 @@ class MADDPGUnity(MADDPG):
         target_actions = self.target_act(states_next.float())
         target_actions = torch.cat(target_actions, dim=1)
 
+        states_next = states_next.permute(1, 0, 2)
         target_critic_input = torch.cat((
-            states.view(-1, states.shape[1] * states.shape[2]).float(), target_actions
+            states_next.view(-1, states_next.shape[1] * states_next.shape[2]).float(), target_actions
         ), dim=1).to(device)
 
         with torch.no_grad():
@@ -87,7 +110,6 @@ class MADDPGUnity(MADDPG):
         actor_loss.backward()
         # torch.nn.utils.clip_grad_norm_(agent.actor.parameters(),0.5)
         agent.actor_optimizer.step()
-        self.iter +=1
 
         al = actor_loss.cpu().detach().item()
         cl = critic_loss.cpu().detach().item()
