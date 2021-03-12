@@ -1,15 +1,27 @@
 import logging
+from typing import Optional
 
 import torch
 
 from config import Config
 from ddpg import DDPGAgent
-from maddpg import MADDPG
 
+def soft_update(target, source, tau):
+    """
+    Perform DDPG soft update (move target params toward source based on weight
+    factor tau)
+    Inputs:
+        target (torch.nn.Module): Net to copy parameters to
+        source (torch.nn.Module): Net whose parameters to copy
+        tau (float, 0 < x < 1): Weight factor for update
+    """
+    for target_param, param in zip(target.parameters(), source.parameters()):
+        target_param.data.copy_(target_param.data * (1.0 - tau) + param.data * tau)
 
-class MADDPGUnity(MADDPG):
-    def __init__(self, cfg: Config, discount_factor=0.95, tau=0.02):
-        super(MADDPGUnity, self).__init__(tau=tau, discount_factor=discount_factor)
+class MADDPGUnity:
+    def __init__(
+        self, cfg: Config, discount_factor=0.95, tau=0.02, checkpoint_path: Optional[str] = None
+    ):
         self.logger = logging.getLogger(__name__)
         self.maddpg_agent = [
             DDPGAgent(
@@ -23,6 +35,8 @@ class MADDPGUnity(MADDPG):
                 lr_actor=cfg.actor_lr,
                 lr_critic=cfg.critic_lr
             ),
+
+
             DDPGAgent(
                 in_actor=24,
                 hidden_in_actor=cfg.actor_hidden[0],
@@ -35,7 +49,44 @@ class MADDPGUnity(MADDPG):
                 lr_critic=cfg.critic_lr
             )
         ]
+        if checkpoint_path:
+            checkpoint = torch.load(checkpoint_path)
+            for i, agent in enumerate(self.maddpg_agent):
+                agent.actor.load_state_dict(checkpoint[i]['actor_params'])
+                agent.critic.load_state_dict(checkpoint[i]['critic_params'])
+                agent.actor_optimizer.load_state_dict(checkpoint[i]['actor_optim_params'])
+                agent.critic_optimizer.load_state_dict(checkpoint[i]['critic_optim_params'])
 
+        self.tau = tau
+        self.discount_factor = discount_factor
+        self.iter = 0
+
+    def get_actors(self):
+        """get actors of all the agents in the MADDPG object"""
+        actors = [ddpg_agent.actor for ddpg_agent in self.maddpg_agent]
+        return actors
+
+    def get_target_actors(self):
+        """get target_actors of all the agents in the MADDPG object"""
+        target_actors = [ddpg_agent.target_actor for ddpg_agent in self.maddpg_agent]
+        return target_actors
+
+    def act(self, obs_all_agents, noise=0.0):
+        """get actions from all agents in the MADDPG object"""
+        actions = [agent.act(obs, noise) for agent, obs in zip(self.maddpg_agent, obs_all_agents)]
+        return actions
+
+    def target_act(self, obs_all_agents, noise=0.0):
+        """get target network actions from all the agents in the MADDPG object """
+        target_actions = [ddpg_agent.target_act(obs, noise) for ddpg_agent, obs in zip(self.maddpg_agent, obs_all_agents)]
+        return target_actions
+
+    def update_targets(self):
+        """soft update targets"""
+        # self.iter += 1
+        for ddpg_agent in self.maddpg_agent:
+            soft_update(ddpg_agent.target_actor, ddpg_agent.actor, self.tau)
+            soft_update(ddpg_agent.target_critic, ddpg_agent.critic, self.tau)
 
     def update(self, samples, agent_number, logger,device: str = 'cpu'):
         """update the critics and actors of all the agents """

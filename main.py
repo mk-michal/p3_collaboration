@@ -12,6 +12,9 @@ import numpy as np
 from config import Config
 from config import save_config
 
+
+
+
 def main():
     env = UnityEnvironment(file_name="Tennis_Linux/Tennis.x86_64", worker_id=1, seed=1)
     env_date = str(datetime.datetime.now())
@@ -23,15 +26,15 @@ def main():
     brain_name = env.brain_names[0]
 
     buffer = ReplayBuffer(Config.buffer_size)
-    maddpg = MADDPGUnity(cfg=Config, tau=Config.tau, discount_factor=Config.discount_factor)
+    maddpg = MADDPGUnity(
+        cfg=Config, tau=Config.tau, discount_factor=Config.discount_factor, checkpoint_path=Config.checkpoint_path)
 
     agent1_reward, agent0_reward, all_rewards_mean = [], [], []
     batchsize = Config.batchsize
-    max_reward = 0
+    max_reward = Config.max_reward
     # amplitude of OU noise
     # this slowly decreases to 0
-    noise = Config.noise
-    noise_reduction = Config.noise_reduction
+    noise = Config.noise_beginning
 
     logger = logging.getLogger('Tennis MADDPG')
     all_rewards = []
@@ -41,9 +44,9 @@ def main():
         states = env_info.vector_observations  # get the current state (for each agent)
         scores = np.zeros(2)  # initialize the score (for each agent)
         n_of_steps = 0
+        noise = max(Config.min_noise, Config.noise_beginning * (1 - (Config.n_episodes - episode)/Config.n_episodes))
         while True:
             n_of_steps += 1
-            noise *= noise_reduction
 
             states_tensor = list(map(torch.tensor, states))
             states_tensor = [a.float() for a in states_tensor]
@@ -56,9 +59,15 @@ def main():
 
             states_next = env_info.vector_observations
 
-            buffer_data = (
-                states, actions_for_env, env_info.rewards, states_next, env_info.local_done
-            )
+            # if replay_buffer_reward_min is defined, add to replay buffer only the observations higher than min_reward
+            if Config.replay_buffer_raward_min and max(env_info.rewards) > Config.replay_buffer_raward_min:
+                buffer_data = (
+                    states, actions_for_env, env_info.rewards, states_next, env_info.local_done
+                )
+            else:
+                buffer_data = (
+                    states, actions_for_env, env_info.rewards, states_next, env_info.local_done
+                )
 
             buffer.push(buffer_data)
 
