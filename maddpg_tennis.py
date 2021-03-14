@@ -33,7 +33,8 @@ class MADDPGUnity:
                 hidden_in_critic=cfg.critic_hidden[0],
                 hidden_out_critic=cfg.critic_hidden[1],
                 lr_actor=cfg.actor_lr,
-                lr_critic=cfg.critic_lr
+                lr_critic=cfg.critic_lr,
+                noise_dist=cfg.noise_distribution
             ),
 
 
@@ -46,7 +47,8 @@ class MADDPGUnity:
                 hidden_in_critic=cfg.critic_hidden[0],
                 hidden_out_critic=cfg.critic_hidden[1],
                 lr_actor=cfg.actor_lr,
-                lr_critic=cfg.critic_lr
+                lr_critic=cfg.critic_lr,
+                noise_dist=cfg.noise_distribution
             )
         ]
         if checkpoint_path:
@@ -54,8 +56,8 @@ class MADDPGUnity:
             for i, agent in enumerate(self.maddpg_agent):
                 agent.actor.load_state_dict(checkpoint[i]['actor_params'])
                 agent.critic.load_state_dict(checkpoint[i]['critic_params'])
-                agent.actor_optimizer.load_state_dict(checkpoint[i]['actor_optim_params'])
-                agent.critic_optimizer.load_state_dict(checkpoint[i]['critic_optim_params'])
+                # agent.actor_optimizer.load_state_dict(checkpoint[i]['actor_optim_params'])
+                # agent.critic_optimizer.load_state_dict(checkpoint[i]['critic_optim_params'])
 
         self.tau = tau
         self.discount_factor = discount_factor
@@ -112,7 +114,7 @@ class MADDPGUnity:
 
         states_next = states_next.permute(1, 0, 2)
         target_critic_input = torch.cat((
-            states_next.view(-1, states_next.shape[1] * states_next.shape[2]).float(), target_actions
+            states_next.view(-1, states_next.shape[1] * states_next.shape[2]).float(), target_actions.float()
         ), dim=1).to(device)
 
         with torch.no_grad():
@@ -125,7 +127,7 @@ class MADDPGUnity:
         action = torch.reshape(actions_for_env, shape=(-1, 4))
 
         critic_input = torch.cat((
-            states.view(-1,states.shape[1]*states.shape[2]).float(), action
+            states.view(-1,states.shape[1]*states.shape[2]).float(), action.float()
         ), dim=1).to(device)
 
         q = agent.critic(critic_input)
@@ -133,6 +135,7 @@ class MADDPGUnity:
         huber_loss = torch.nn.SmoothL1Loss()
         critic_loss = huber_loss(q, y.detach())
         critic_loss.backward()
+
         # torch.nn.utils.clip_grad_norm_(agent.critic.parameters(), 0.5)
         agent.critic_optimizer.step()
 
@@ -143,11 +146,17 @@ class MADDPGUnity:
         # detach the other agents to save computation
         # saves some time for computing derivative
         states = states.permute(1,0,2)
-        q_input = [self.maddpg_agent[i].actor(ob.float()) if i == agent_number \
-                       else self.maddpg_agent[i].actor(ob.float()).detach()
-                   for i, ob in enumerate(states)]
+        q_input_agent_0 = self.maddpg_agent[0].actor(states[0].float())
+        q_input_agent_1 = self.maddpg_agent[1].actor(states[0].float())
+        if agent_number == 0:
+            q_input_agent_0 = q_input_agent_0.detach()
+        else:
+            q_input_agent_1 = q_input_agent_1.detach()
+        # q_input = [self.maddpg_agent[i].actor(ob.float()) if i == agent_number \
+        #                else self.maddpg_agent[i].actor(ob.float()).detach()
+        #            for i, ob in enumerate(states)]
 
-        q_input = torch.cat(q_input, dim=1)
+        q_input = torch.cat([q_input_agent_0, q_input_agent_1], dim=1)
 
         # combine all the actions and observations for input to critic
         # many of the obs are redundant, and obs[1] contains all useful information already
