@@ -26,9 +26,9 @@ class MADDPGUnity:
         self, config: Config, discount_factor=0.95, tau=0.02, checkpoint_path: Optional[str] = None
     ):
         self.logger = logging.getLogger(__name__)
+        self.config = config
 
-        self.maddpg_agent= [
-            DeterministicActorCriticNet(
+        actor_critic_net = lambda : DeterministicActorCriticNet(
                 config.state_dim,
                 config.action_dim,
                 actor_body=FCBody(
@@ -39,28 +39,16 @@ class MADDPGUnity:
                 ),
                 actor_opt_fn=lambda params: torch.optim.Adam(params, lr=config.actor_lr),
                 critic_opt_fn=lambda params: torch.optim.Adam(params, lr=config.critic_lr)
-            ),
-            DeterministicActorCriticNet(
-                config.state_dim,
-                config.action_dim,
-                actor_body=FCBody(
-                    config.state_dim, config.actor_hidden, gate=F.relu
-                ),
-                critic_body=FCBody(
-                    config.state_dim + config.action_dim, config.critic_hidden, gate=F.relu
-                ),
-                actor_opt_fn=lambda params: torch.optim.Adam(params, lr=config.actor_lr),
-                critic_opt_fn=lambda params: torch.optim.Adam(params, lr=config.critic_lr)
             )
-        ]
+        self.maddpg_agent= [actor_critic_net(), actor_critic_net()]
+        self.maddpg_agent_target = [actor_critic_net(), actor_critic_net()]
 
         if checkpoint_path:
             checkpoint = torch.load(checkpoint_path)
-            for i, agent in enumerate(self.maddpg_agent):
-                agent.actor.load_state_dict(checkpoint[i]['actor_params'])
-                agent.critic.load_state_dict(checkpoint[i]['critic_params'])
-                # agent.actor_optimizer.load_state_dict(checkpoint[i]['actor_optim_params'])
-                # agent.critic_optimizer.load_state_dict(checkpoint[i]['critic_optim_params'])
+            self.maddpg_agent[0].load_state_dict(checkpoint[0])
+            self.maddpg_agent_target[0].load_state_dict(checkpoint[0])
+            self.maddpg_agent[1].load_state_dict(checkpoint[1])
+            self.maddpg_agent_target[1].load_state_dict(checkpoint[1])
 
         self.tau = tau
         self.discount_factor = discount_factor
@@ -78,20 +66,26 @@ class MADDPGUnity:
 
     def act(self, obs_all_agents, noise=0.0):
         """get actions from all agents in the MADDPG object"""
-        actions = [agent.act(obs, noise) for agent, obs in zip(self.maddpg_agent, obs_all_agents)]
+        actions = [agent(obs) for agent, obs in zip(self.maddpg_agent, obs_all_agents)]
         return actions
 
     def target_act(self, obs_all_agents, noise=0.0):
         """get target network actions from all the agents in the MADDPG object """
-        target_actions = [ddpg_agent.target_act(obs, noise) for ddpg_agent, obs in zip(self.maddpg_agent, obs_all_agents)]
+        target_actions = [ddpg_agent(obs) for ddpg_agent, obs in zip(self.maddpg_agent_target, obs_all_agents)]
         return target_actions
 
-    def update_targets(self):
-        """soft update targets"""
-        # self.iter += 1
-        for ddpg_agent in self.maddpg_agent:
-            soft_update(ddpg_agent.target_actor, ddpg_agent.actor, self.tau)
-            soft_update(ddpg_agent.target_critic, ddpg_agent.critic, self.tau)
+    # def update_targets(self):
+    #     """soft update targets"""
+    #     for ddpg_agent, ddpg_agent_target in zip(self.maddpg_agent, self.maddpg_agent_target):
+    #         soft_update(ddpg_agent.actor.model, ddpg_agent_target.actor, self.tau)
+    #         soft_update(ddpg_agent.target_critic, ddpg_agent_target.critic, self.tau)
+
+    def soft_update(self):
+
+        for agent, agent_target in zip(self.maddpg_agent, self.maddpg_agent_target):
+            for param, target_param in zip(agent.parameters(), agent_target.parameters()):
+                target_param.detach_()
+                target_param.copy_(target_param * (1.0 - self.config.tau) + param * self.config.tau)
 
     def update(self, samples, agent_number, logger,device: str = 'cpu'):
         """update the critics and actors of all the agents """
@@ -106,6 +100,7 @@ class MADDPGUnity:
         # next_obs_full = torch.stack(next_obs_full)
 
         agent = self.maddpg_agent[agent_number]
+        agent_target = self.maddpg_agent_target[agent_number]
         agent.critic_optimizer.zero_grad()
 
         # critic loss = batch mean of (y- Q(s,a) from target network)^2
@@ -121,7 +116,7 @@ class MADDPGUnity:
         ), dim=1).to(device)
 
         with torch.no_grad():
-            q_next = agent.target_critic(target_critic_input.float())
+            q_next = agent_target.critic(target_critic_input.float())
 
         y = rewards[:, agent_number].view(-1, 1) + self.discount_factor * q_next * (
             1 - done[:,agent_number].long().view(-1,1)
@@ -152,9 +147,9 @@ class MADDPGUnity:
         q_input_agent_0 = self.maddpg_agent[0].actor(states[0].float())
         q_input_agent_1 = self.maddpg_agent[1].actor(states[0].float())
         if agent_number == 0:
-            q_input_agent_0 = q_input_agent_0.detach()
-        else:
             q_input_agent_1 = q_input_agent_1.detach()
+        else:
+            q_input_agent_0 = q_input_agent_0.detach()
         # q_input = [self.maddpg_agent[i].actor(ob.float()) if i == agent_number \
         #                else self.maddpg_agent[i].actor(ob.float()).detach()
         #            for i, ob in enumerate(states)]

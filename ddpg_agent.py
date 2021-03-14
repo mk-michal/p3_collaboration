@@ -39,8 +39,8 @@ class DeterministicActorCriticNet(nn.Module):
         self.critic_params = list(self.critic_body.parameters()) + list(self.fc_critic.parameters())
         self.phi_params = list(self.phi_body.parameters())
 
-        self.actor_opt = actor_opt_fn(self.actor_params + self.phi_params)
-        self.critic_opt = critic_opt_fn(self.critic_params + self.phi_params)
+        self.actor_optimizer = actor_opt_fn(self.actor_params + self.phi_params)
+        self.critic_optimizer = critic_opt_fn(self.critic_params + self.phi_params)
         self.to('cpu')
 
     def forward(self, obs):
@@ -55,5 +55,5 @@ class DeterministicActorCriticNet(nn.Module):
     def actor(self, phi):
         return torch.tanh(self.fc_action(self.actor_body(phi)))
 
-    def critic(self, phi, a):
-        return self.fc_critic(self.critic_body(torch.cat([phi, a], dim=1)))
+    def critic(self, features):
+        return self.fc_critic(self.critic_body(features))

@@ -19,10 +19,11 @@ class Config(NamedTuple):
     discount_factor = 0.98
     max_reward = 0.02
     replay_buffer_raward_min = 0.1
-    checkpoint_path = 'data/2021-03-11 16:56:43.095820/episode-4999.pt'
+    checkpoint_path = None
     noise_distribution = 'uniform'
     state_dim = 24
     action_dim = 2
+
 
 def named_tuple_to_dict(named_tuple: NamedTuple):
     full_dict = {}

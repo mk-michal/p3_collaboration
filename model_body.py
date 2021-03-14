@@ -1,5 +1,5 @@
 from torch import nn
-
+import torch.nn.functional as F
 
 def layer_init(layer, w_scale=1.0):
     nn.init.orthogonal_(layer.weight.data)

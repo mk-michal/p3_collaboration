@@ -27,7 +27,7 @@ def main():
 
     buffer = ReplayBuffer(Config.buffer_size)
     maddpg = MADDPGUnity(
-        cfg=Config,
+        config=Config,
         tau=Config.tau,
         discount_factor=Config.discount_factor,
         checkpoint_path=Config.checkpoint_path
@@ -94,7 +94,7 @@ def main():
                 samples = buffer.sample(batchsize)
                 maddpg.update(samples, i, logger)
             if episode % Config.update_episode_n == 0:
-                maddpg.update_targets()  # soft update the target network towards the actual networks
+                maddpg.soft_update()  # soft update the target network towards the actual networks
             maddpg.iter += 1
 
         if (episode + 1) % 100 == 0 or episode == Config.n_episodes -1:
@@ -106,11 +106,7 @@ def main():
 
                 save_dict_list = []
                 for i in range(2):
-                    save_dict = {'actor_params' : maddpg.maddpg_agent[i].actor.state_dict(),
-                                 'actor_optim_params': maddpg.maddpg_agent[i].actor_optimizer.state_dict(),
-                                 'critic_params' : maddpg.maddpg_agent[i].critic.state_dict(),
-                                 'critic_optim_params' : maddpg.maddpg_agent[i].critic_optimizer.state_dict()}
-
+                    save_dict = maddpg.maddpg_agent[i].state_dict(),
                     save_dict_list.append(save_dict)
                     save_dict_list.append(save_dict)
 
