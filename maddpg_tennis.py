@@ -150,7 +150,7 @@ class MADDPGUnity:
         # saves some time for computing derivative
         states = states.permute(1,0,2)
         q_input_agent_0 = self.maddpg_agent[0].actor(states[0].float())
-        q_input_agent_1 = self.maddpg_agent[1].actor(states[0].float())
+        q_input_agent_1 = self.maddpg_agent[1].actor(states[1].float())
         if agent_number == 0:
             q_input_agent_1 = q_input_agent_1.detach()
         else:

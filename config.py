@@ -6,15 +6,15 @@ from typing import NamedTuple
 class Config(NamedTuple):
     n_episodes = 10000
     buffer_size = int(1e6)
-    batchsize = 1000
+    batchsize = 100
     noise_beginning = 1
     min_noise = 0.1
     tau = 0.005
     warmup = 4000
     actor_hidden = (200,120)
     critic_hidden = (200,50)
-    critic_lr = 1e-6
-    actor_lr = 1e-6
+    critic_lr = 1e-5
+    actor_lr = 1e-5
     update_episode_n = 1
     discount_factor = 0.98
     max_reward = 0.02

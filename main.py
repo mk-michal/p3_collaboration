@@ -64,19 +64,20 @@ def main():
             states_next = env_info.vector_observations
 
             # if replay_buffer_reward_min is defined, add to replay buffer only the observations higher than min_reward
-            if Config.replay_buffer_raward_min and max(env_info.rewards) > Config.replay_buffer_raward_min:
-                buffer_data = (
-                    states, actions_for_env, env_info.rewards, states_next, env_info.local_done
-                )
-                buffer.push(buffer_data)
-            else:
-                buffer_data = (
-                    states, actions_for_env, env_info.rewards, states_next, env_info.local_done
-                )
-
-                buffer.push(buffer_data)
-
             reward_this_episode += np.array(env_info.rewards)
+            if Config.replay_buffer_raward_min and max(reward_this_episode) > Config.replay_buffer_raward_min:
+                buffer_data = (
+                    states, actions_for_env, env_info.rewards, states_next, env_info.local_done
+                )
+                buffer.push(buffer_data)
+
+            if not Config.replay_buffer_raward_min:
+                buffer_data = (
+                    states, actions_for_env, env_info.rewards, states_next, env_info.local_done
+                )
+
+                buffer.push(buffer_data)
+
 
             dones = env_info.local_done  # see if episode finished
             scores += env_info.rewards  # update the score (for each agent)
