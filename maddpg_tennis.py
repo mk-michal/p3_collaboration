@@ -55,7 +55,10 @@ class MADDPGUnity:
             checkpoint = torch.load(checkpoint_path)
             for i, agent in enumerate(self.maddpg_agent):
                 agent.actor.load_state_dict(checkpoint[i]['actor_params'])
+                agent.target_actor.load_state_dict(checkpoint[i]['actor_params'])
                 agent.critic.load_state_dict(checkpoint[i]['critic_params'])
+                agent.target_critic.load_state_dict(checkpoint[i]['critic_params'])
+
                 # agent.actor_optimizer.load_state_dict(checkpoint[i]['actor_optim_params'])
                 # agent.critic_optimizer.load_state_dict(checkpoint[i]['critic_optim_params'])
 

@@ -9,11 +9,11 @@ class Config(NamedTuple):
     batchsize = 1000
     noise_beginning = 1
     min_noise = 0.1
-    tau = 0.002
+    tau = 0.005
     warmup = 4000
     actor_hidden = (200,120)
     critic_hidden = (200,50)
-    critic_lr = 1e-5
+    critic_lr = 1e-6
     actor_lr = 1e-6
     update_episode_n = 1
     discount_factor = 0.98
