@@ -4,7 +4,10 @@ from typing import Optional
 import torch
 
 from config import Config
+from ddpg_agent import DeterministicActorCriticNet
 from ddpg import DDPGAgent
+from model_body import FCBody
+import torch.nn.functional as F
 
 def soft_update(target, source, tau):
     """
@@ -20,37 +23,37 @@ def soft_update(target, source, tau):
 
 class MADDPGUnity:
     def __init__(
-        self, cfg: Config, discount_factor=0.95, tau=0.02, checkpoint_path: Optional[str] = None
+        self, config: Config, discount_factor=0.95, tau=0.02, checkpoint_path: Optional[str] = None
     ):
         self.logger = logging.getLogger(__name__)
-        self.maddpg_agent = [
-            DDPGAgent(
-                in_actor=24,
-                hidden_in_actor=cfg.actor_hidden[0],
-                hidden_out_actor=cfg.actor_hidden[1],
-                out_actor=2,
-                in_critic=52,
-                hidden_in_critic=cfg.critic_hidden[0],
-                hidden_out_critic=cfg.critic_hidden[1],
-                lr_actor=cfg.actor_lr,
-                lr_critic=cfg.critic_lr,
-                noise_dist=cfg.noise_distribution
+
+        self.maddpg_agent= [
+            DeterministicActorCriticNet(
+                config.state_dim,
+                config.action_dim,
+                actor_body=FCBody(
+                    config.state_dim, config.actor_hidden, gate=F.relu
+                ),
+                critic_body=FCBody(
+                    config.state_dim * 2 + config.action_dim *2, config.critic_hidden, gate=F.relu
+                ),
+                actor_opt_fn=lambda params: torch.optim.Adam(params, lr=config.actor_lr),
+                critic_opt_fn=lambda params: torch.optim.Adam(params, lr=config.critic_lr)
             ),
-
-
-            DDPGAgent(
-                in_actor=24,
-                hidden_in_actor=cfg.actor_hidden[0],
-                hidden_out_actor=cfg.actor_hidden[1],
-                out_actor=2,
-                in_critic=52,
-                hidden_in_critic=cfg.critic_hidden[0],
-                hidden_out_critic=cfg.critic_hidden[1],
-                lr_actor=cfg.actor_lr,
-                lr_critic=cfg.critic_lr,
-                noise_dist=cfg.noise_distribution
+            DeterministicActorCriticNet(
+                config.state_dim,
+                config.action_dim,
+                actor_body=FCBody(
+                    config.state_dim, config.actor_hidden, gate=F.relu
+                ),
+                critic_body=FCBody(
+                    config.state_dim + config.action_dim, config.critic_hidden, gate=F.relu
+                ),
+                actor_opt_fn=lambda params: torch.optim.Adam(params, lr=config.actor_lr),
+                critic_opt_fn=lambda params: torch.optim.Adam(params, lr=config.critic_lr)
             )
         ]
+
         if checkpoint_path:
             checkpoint = torch.load(checkpoint_path)
             for i, agent in enumerate(self.maddpg_agent):

@@ -9,18 +9,20 @@ class Config(NamedTuple):
     batchsize = 1000
     noise_beginning = 1
     min_noise = 0.1
-    tau = 0.002
+    tau = 0.005
     warmup = 4000
-    actor_hidden = (200,120)
-    critic_hidden = (200,50)
-    critic_lr = 1e-5
-    actor_lr = 1e-6
+    actor_hidden = (400,300)
+    critic_hidden = (400,300)
+    critic_lr = 1e-3
+    actor_lr = 1e-4
     update_episode_n = 1
     discount_factor = 0.98
     max_reward = 0.02
     replay_buffer_raward_min = 0.1
     checkpoint_path = 'data/2021-03-11 16:56:43.095820/episode-4999.pt'
     noise_distribution = 'uniform'
+    state_dim = 24
+    action_dim = 2
 
 def named_tuple_to_dict(named_tuple: NamedTuple):
     full_dict = {}
