@@ -27,7 +27,11 @@ def main():
 
     buffer = ReplayBuffer(Config.buffer_size)
     maddpg = MADDPGUnity(
-        cfg=Config, tau=Config.tau, discount_factor=Config.discount_factor, checkpoint_path=Config.checkpoint_path)
+        cfg=Config,
+        tau=Config.tau,
+        discount_factor=Config.discount_factor,
+        checkpoint_path=Config.checkpoint_path
+    )
 
     agent1_reward, agent0_reward, all_rewards_mean = [], [], []
     batchsize = Config.batchsize
@@ -64,12 +68,13 @@ def main():
                 buffer_data = (
                     states, actions_for_env, env_info.rewards, states_next, env_info.local_done
                 )
+                buffer.push(buffer_data)
             else:
                 buffer_data = (
                     states, actions_for_env, env_info.rewards, states_next, env_info.local_done
                 )
 
-            buffer.push(buffer_data)
+                buffer.push(buffer_data)
 
             reward_this_episode += np.array(env_info.rewards)
 
