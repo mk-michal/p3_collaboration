@@ -4,23 +4,25 @@ from typing import NamedTuple
 
 
 class Config(NamedTuple):
-    n_episodes = 10000
+    n_episodes = 20000
     buffer_size = int(1e6)
-    batchsize = 100
-    noise_beginning = 1
+    batchsize = 1000
+    noise_beginning = 1.0
     min_noise = 0.1
     tau = 0.005
-    warmup = 4000
-    actor_hidden = (200,120)
-    critic_hidden = (200,50)
-    critic_lr = 1e-5
-    actor_lr = 1e-5
+    warmup = 5000
+    actor_hidden = (400,300)
+    critic_hidden = (400,300)
+    critic_lr = 1e-3
+    actor_lr = 5e-4
     update_episode_n = 1
     discount_factor = 0.98
-    max_reward = 0.02
-    replay_buffer_raward_min = 0.1
-    checkpoint_path = 'data/2021-03-11 16:56:43.095820/episode-4999.pt'
+    max_reward = 0.01
+    replay_buffer_raward_min = 0.0
+    # checkpoint_path = 'data/2021-03-11 16:56:43.095820/episode-4999.pt'
+    checkpoint_path = 'data_single/2021-03-21 21:00:44.852822/episode-14999.pt'
     noise_distribution = 'uniform'
+
 
 def named_tuple_to_dict(named_tuple: NamedTuple):
     full_dict = {}

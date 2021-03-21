@@ -65,7 +65,7 @@ def main():
 
             # if replay_buffer_reward_min is defined, add to replay buffer only the observations higher than min_reward
             reward_this_episode += np.array(env_info.rewards)
-            if Config.replay_buffer_raward_min and max(reward_this_episode) > Config.replay_buffer_raward_min:
+            if Config.replay_buffer_raward_min and max(reward_this_episode) >= Config.replay_buffer_raward_min:
                 buffer_data = (
                     states, actions_for_env, env_info.rewards, states_next, env_info.local_done
                 )
@@ -85,9 +85,9 @@ def main():
             if np.any(dones):  # exit loop if episode finished
                 break
 
+
         all_rewards.append(max(reward_this_episode[0], reward_this_episode[1]))
         all_rewards_mean.append(np.mean(all_rewards[-100:]))
-
         agent0_reward.append(reward_this_episode[0])
         agent1_reward.append(reward_this_episode[1])
         if len(buffer) > Config.warmup:
@@ -101,13 +101,14 @@ def main():
         if (episode + 1) % 100 == 0 or episode == Config.n_episodes -1:
             logger.info(f'Average 0 reward of agent0 is {np.mean(agent0_reward)}')
             logger.info(f'Average 1 reward of agent1 is {np.mean(agent1_reward)}')
-            if max(np.mean(agent0_reward), np.mean(agent1_reward)) > max_reward:
+            if all_rewards_mean and all_rewards_mean[-1] > max_reward:
                 max_reward = max(np.mean(agent0_reward), np.mean(agent1_reward))
                 logger.info('Found best model. Saving model into file: ...')
 
                 save_dict_list = []
                 for i in range(2):
                     save_dict = {'actor_params' : maddpg.maddpg_agent[i].actor.state_dict(),
+                                 'actor_target_params': maddpg.maddpg_agent[i].actor.state_dict(),
                                  'actor_optim_params': maddpg.maddpg_agent[i].actor_optimizer.state_dict(),
                                  'critic_params' : maddpg.maddpg_agent[i].critic.state_dict(),
                                  'critic_optim_params' : maddpg.maddpg_agent[i].critic_optimizer.state_dict()}
