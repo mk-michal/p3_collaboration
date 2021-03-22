@@ -1,0 +1,25 @@
+{
+    "actor_hidden": [
+        400,
+        300
+    ],
+    "actor_lr": 0.0005,
+    "batchsize": 1000,
+    "buffer_size": 1000000,
+    "checkpoint_path": "data_single/2021-03-21 21:00:44.852822/episode-14999.pt",
+    "critic_hidden": [
+        400,
+        300
+    ],
+    "critic_lr": 0.001,
+    "discount_factor": 0.98,
+    "max_reward": 0.01,
+    "min_noise": 0.1,
+    "n_episodes": 20000,
+    "noise_beginning": 1.0,
+    "noise_distribution": "uniform",
+    "replay_buffer_raward_min": 0.0,
+    "tau": 0.005,
+    "update_episode_n": 1,
+    "warmup": 5000
+}
