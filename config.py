@@ -19,8 +19,7 @@ class Config(NamedTuple):
     discount_factor = 0.98
     max_reward = 0.01
     replay_buffer_raward_min = 0.0
-    # checkpoint_path = 'data/2021-03-11 16:56:43.095820/episode-4999.pt'
-    checkpoint_path = 'data_single/2021-03-21 21:00:44.852822/episode-14999.pt'
+    checkpoint_path = 'results/ddpg/episode-10699.pt'
     noise_distribution = 'uniform'
 
 
