@@ -52,7 +52,7 @@ python main.py
 ```
 DDPG algorithm is written in `ddpg.py` and multiagent network with ddpg algorithm is in `maddpg_tennis.py`.
 
-Final model is saved in `data_single/2021-03-21 22:06:52.442361`. In this folder we can find trained model, hyperparameters used with trained model and final graph depicting the training.
+Final model is saved in `results/ddpg`. In this folder we can find trained model, hyperparameters used with trained model and final graph depicting the training.
 Model is trained from single-agent ddpg algorithm, as we unfortunatelly couldnt find a way to make multiple agent DDPG to work. 
 
 All config values are set in `config.py` module.
