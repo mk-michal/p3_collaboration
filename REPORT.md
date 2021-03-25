@@ -11,6 +11,15 @@ that actor outputs action directly instead of a probability distribution over ac
 Critic is a Q-value network that takes in state and action as input and outputs the Q-value. 
 Critic here behaves as a "teacher", evaluating the actions that were provided by the actor.
 
+## Model Architecture
+For actor, I used two hidden units with 400 and 300 hidden units respectively. For each hidden layer
+ReLU activation function was used. Actor outputs two values corresponding to agent actions. For 
+output layer we used tanh activation function in order to normalize the output between -1 an 1.
+
+Critic network received concatenated states of both agents with actions from the actor output. We used 
+2 hidden layers with 400 and 300 hidden units. ReLU activation was used for each hidden layer. 
+and output of 1 unit. 
+
 
 ###Single agent DDPG
 Final model is trained using single agent DDPG algorithm that achieved desired reward df of 0.5 as average over 100 episode. 
