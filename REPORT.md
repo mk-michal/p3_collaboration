@@ -1,6 +1,17 @@
 ## Algorithm
 To solve the Tennis environment task, I tried to use multiple agnet ddpg model (MADDPG) and single agent DDPG with actor-critic mechanism.
 
+DDPG is an algorithm which learns Q-function and a policy at the same time. Q-function is learned 
+using off-policy trials and later used to learn the optimal policy. 
+
+It consists of two models - actor and critic. Actor is a policy network that takes the state as 
+input and outputs the exact continuous action. Actions are learned deterministicly, which means
+that actor outputs action directly instead of a probability distribution over actions.
+
+Critic is a Q-value network that takes in state and action as input and outputs the Q-value. 
+Critic here behaves as a "teacher", evaluating the actions that were provided by the actor.
+
+
 ###Single agent DDPG
 Final model is trained using single agent DDPG algorithm that achieved desired reward df of 0.5 as average over 100 episode. 
 Full training could be seen on following chart. Results are an average over 100 episodes, as stated in task description. 
